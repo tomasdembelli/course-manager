@@ -2,8 +2,9 @@ package models
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestUser_UnmarshalJSON(t *testing.T) {
