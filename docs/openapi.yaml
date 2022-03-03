@@ -1,0 +1,105 @@
+openapi: 3.0.1
+info:
+  title: Course Manager
+  description: The `course-manager` service facilitates creating a new course and registiring students to it.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/v1
+    description: Local development server.
+tags:
+  - name: course
+    description: |
+      The `course-manager` service should be used to create, update and delete a course.
+paths:
+  /create:
+    post:
+      tags:
+        - course
+      summary: Add a new course
+      requestBody:
+        description: Request body for constituting a course
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Course'
+      responses:
+        201:
+          description: Created
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
+components:
+  schemas:
+    stringRequired:
+      type: string
+      required: true
+    uuid:
+      type: string
+      format: uuid
+    uuidRequired:
+      type: string
+      format: uuid
+      required: true
+    Student:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/stringRequired'
+        lastName:
+          $ref: '#/components/schemas/stringRequired'
+        uuid:
+          $ref: '#/components/schemas/uuidRequired'
+        faculty:
+          $ref: '#/components/schemas/stringRequired'
+    Tutor:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/stringRequired'
+        lastName:
+          $ref: '#/components/schemas/stringRequired'
+        uuid:
+          $ref: '#/components/schemas/uuidRequired'
+        faculty:
+          $ref: '#/components/schemas/stringRequired'
+        lecturerOf:
+          $ref: '#/components/schemas/stringRequired'
+    Course:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/stringRequired'
+        tutor:
+          $ref: '#/components/schemas/Tutor'
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+    error:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: The status code of the error.
+        error:
+          type: string
+          description: A title for the error response.
+  responses:
+    notFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'

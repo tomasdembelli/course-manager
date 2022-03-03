@@ -1,0 +1,24 @@
+version: "3.3"
+services:
+  web:
+    build: .
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/usr/src/app
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    environment:
+      - SWAGGER_JSON=/docs/openapi.yaml
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./docs:/docs"
+
+  lint:
+    image: golangci/golangci-lint:latest-alpine
+    command: golangci-lint run --timeout 2m -E goimports --build-tags integration
+    volumes:
+      - .:/build
+    working_dir: /build
