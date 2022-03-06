@@ -11,7 +11,7 @@ tags:
     description: |
       The `course-manager` service should be used to create, update and delete a course.
 paths:
-  /create:
+  /createCourse:
     post:
       tags:
         - course
@@ -26,6 +26,107 @@ paths:
       responses:
         201:
           description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
+  /getCourse/{courseUuid}:
+    get:
+      tags:
+        - course
+      summary: Retrieve a course
+      parameters:
+        - $ref: '#/components/parameters/uuid'
+      responses:
+        200:
+          description: Details of the requested course
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
+  /listCourses:
+    get:
+      tags:
+        - course
+      summary: List all courses
+      responses:
+        200:
+          description: Listing details of the all courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
+  /registerStudent/{courseUuid}:
+    put:
+      tags:
+        - course
+      parameters:
+        - $ref: '#/components/parameters/uuid'
+      summary: Registers a student to a course
+      requestBody:
+        description: Details of the student
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        204:
+          description: Registered
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
+  /deleteStudent/{courseUuid}:
+    put:
+      tags:
+        - course
+      parameters:
+        - $ref: '#/components/parameters/uuid'
+      summary: Deletes a student from a course
+      requestBody:
+        description: UUID of the student
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  $ref: '#/components/schemas/uuid'
+      responses:
+        204:
+          description: Student has been deleted from the course
         400:
           description: Bad request.
         401:
@@ -35,6 +136,16 @@ paths:
         500:
           description: Unexpected error.
 components:
+  parameters:
+    uuid:
+      name: courseUuid
+      description: Course UUID
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^.*\|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}$'
+        example: '5d61cbc8-9ccd-4348-a623-d61dd7658dd7'
   schemas:
     stringRequired:
       type: string
@@ -50,31 +161,47 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Alice
         lastName:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Smith
         uuid:
           $ref: '#/components/schemas/uuidRequired'
         faculty:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Computer Science
     Tutor:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: John
         lastName:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Stone
         uuid:
           $ref: '#/components/schemas/uuidRequired'
         faculty:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Computer Science
         lecturerOf:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Golang
     Course:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/stringRequired'
+          type: string
+          required: true
+          example: Microservices with Go
         tutor:
           $ref: '#/components/schemas/Tutor'
         students:
