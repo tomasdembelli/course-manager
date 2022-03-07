@@ -22,7 +22,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Course'
+              $ref: '#/components/schemas/NewCourse'
       responses:
         201:
           description: Created
@@ -195,9 +195,24 @@ components:
           type: string
           required: true
           example: Golang
+    NewCourse:
+      type: object
+      properties:
+        name:
+          type: string
+          required: true
+          example: Microservices with Go
+        tutor:
+          $ref: '#/components/schemas/Tutor'
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
     Course:
       type: object
       properties:
+        uuid:
+          $ref: '#/components/schemas/uuidRequired'
         name:
           type: string
           required: true

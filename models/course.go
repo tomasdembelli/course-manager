@@ -1,8 +1,11 @@
 package models
 
+import "github.com/google/uuid"
+
 // Course defines a course.
 type Course struct {
-	Name     notEmptyString `json:"name"`
-	Tutor    Tutor          `json:"tutor"`
-	Students []Student      `json:"students"`
+	Uuid     uuid.UUID             `json:"uuid"`
+	Name     notEmptyString        `json:"name"`
+	Tutor    Tutor                 `json:"tutor"`
+	Students map[uuid.UUID]Student `json:"students"`
 }
