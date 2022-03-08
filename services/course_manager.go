@@ -3,9 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/tomasdembelli/course-manager/models"
-	"log"
 )
 
 // Repo is the interface that defines the methods for persisting and manipulating service data.
@@ -19,26 +20,26 @@ type Repo interface {
 	Update(ctx context.Context, uuid uuid.UUID, course models.Course) error
 }
 
-// Course is the service for managing the courses.
-type Course struct {
+// CourseManager is the service for managing the courses.
+type CourseManager struct {
 	repo   Repo
 	logger *log.Logger
 }
 
-// NewCourse initiates a new course service with the given repo.
-func NewCourse(repo Repo, logger *log.Logger) (Course, error) {
+// NewCourseManager initiates a new CourseManager service with the given repo.
+func NewCourseManager(repo Repo, logger *log.Logger) (CourseManager, error) {
 	if repo == nil {
-		return Course{}, NewNilErr("repo")
+		return CourseManager{}, NewNilErr("repo")
 	}
 
 	if logger == nil {
-		return Course{
+		return CourseManager{
 			repo:   repo,
 			logger: log.Default(),
 		}, nil
 	}
 
-	return Course{
+	return CourseManager{
 		repo:   repo,
 		logger: logger,
 	}, nil
@@ -48,7 +49,7 @@ func NewCourse(repo Repo, logger *log.Logger) (Course, error) {
 //	- A tutor can facilitate maximum 2 courses.
 //	- A student can register to maximum 4 courses.
 //	- Maximum 20 students can register a course.
-func (c *Course) Create(ctx context.Context, course models.Course) (*models.Course, error) {
+func (c *CourseManager) Create(ctx context.Context, course models.Course) (*models.Course, error) {
 	coursesByTutor, err := c.repo.ByTutor(ctx, course.Tutor.Uuid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve courses: %w", err)

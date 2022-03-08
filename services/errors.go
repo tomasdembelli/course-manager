@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 )
 
 const (
-	courseNotFoundFmt = "Course with UUID = %d not found"
+	courseNotFoundFmt = "CourseManager with UUID = %d not found"
 	cannotBeNilFmt    = "%v cannot be nil"
 	validationErrFmt  = "validation failed: %v"
 )
@@ -20,7 +21,7 @@ func NewNotFoundErr(message string) *NotFoundError {
 	return &NotFoundError{message: message}
 }
 
-func NewOrderNotFoundErr(courseUuid uuid.UUID) *NotFoundError {
+func NewCourseNotFoundErr(courseUuid uuid.UUID) *NotFoundError {
 	return NewNotFoundErr(fmt.Sprintf(courseNotFoundFmt, courseUuid))
 }
 
