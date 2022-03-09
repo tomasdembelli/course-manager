@@ -6,6 +6,6 @@ import "github.com/google/uuid"
 type Course struct {
 	Uuid     uuid.UUID             `json:"uuid"`
 	Name     notEmptyString        `json:"name"`
-	Tutor    Tutor                 `json:"tutor"`
+	Tutor    *Tutor                `json:"tutor"`
 	Students map[uuid.UUID]Student `json:"students"`
 }

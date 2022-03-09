@@ -11,9 +11,9 @@ import (
 
 // Repo is the interface that defines the methods for persisting and manipulating service data.
 type Repo interface {
-	ById(ctx context.Context, courseUuid uuid.UUID) (models.Course, error)
-	ByTutor(ctx context.Context, tutorUuid uuid.UUID) ([]models.Course, error)
-	ByStudent(ctx context.Context, studentUuid uuid.UUID) ([]models.Course, error)
+	ById(ctx context.Context, courseUUID uuid.UUID) (models.Course, error)
+	ByTutor(ctx context.Context, tutorUUID uuid.UUID) ([]models.Course, error)
+	ByStudent(ctx context.Context, studentUUID uuid.UUID) ([]models.Course, error)
 	List(ctx context.Context) ([]models.Course, error)
 	Create(ctx context.Context, course models.Course) error
 	Delete(ctx context.Context, uuid uuid.UUID) error
@@ -50,6 +50,9 @@ func NewCourseManager(repo Repo, logger *log.Logger) (CourseManager, error) {
 //	- A student can register to maximum 4 courses.
 //	- Maximum 20 students can register a course.
 func (c *CourseManager) Create(ctx context.Context, course models.Course) (*models.Course, error) {
+	if course.Tutor == nil {
+		return nil, NewNilErr("tutor")
+	}
 	coursesByTutor, err := c.repo.ByTutor(ctx, course.Tutor.Uuid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve courses: %w", err)
@@ -76,14 +79,16 @@ func (c *CourseManager) Create(ctx context.Context, course models.Course) (*mode
 			c.logger.Printf("%v, ineligible student uuids: %v", studentMaxCourse, notEligibleStudents)
 		}
 	}
-	courseUuid := uuid.New()
-	course.Uuid = courseUuid
+	if course.Uuid == uuid.Nil {
+		course.Uuid = uuid.New()
+	}
+
 	err = c.repo.Create(ctx, course)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create the course: %w", err)
 	}
 
-	courseCreated, err := c.repo.ById(ctx, courseUuid)
+	courseCreated, err := c.repo.ById(ctx, course.Uuid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve the course: %w", err)
 	}
