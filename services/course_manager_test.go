@@ -39,9 +39,14 @@ type mockRepo struct {
 	courseByStudentUUID map[uuid.UUID][]models.Course
 	errByTutor          error
 	errByStudent        error
+	errCreate           error
+	errById             error
 }
 
 func (m *mockRepo) ById(_ context.Context, courseUuid uuid.UUID) (models.Course, error) {
+	if m.errById != nil {
+		return models.Course{}, m.errById
+	}
 	return m.courseByUUID[courseUuid], nil
 }
 
@@ -66,6 +71,18 @@ func (m *mockRepo) List(ctx context.Context) ([]models.Course, error) {
 }
 
 func (m *mockRepo) Create(_ context.Context, course models.Course) error {
+	if m.errCreate != nil {
+		return m.errCreate
+	}
+	if m.courseByUUID == nil {
+		m.courseByUUID = make(map[uuid.UUID]models.Course)
+	}
+	if m.courseByTutorUUID == nil {
+		m.courseByTutorUUID = make(map[uuid.UUID][]models.Course)
+	}
+	if m.courseByStudentUUID == nil {
+		m.courseByStudentUUID = make(map[uuid.UUID][]models.Course)
+	}
 	m.courseByUUID[course.Uuid] = course
 	m.courseByTutorUUID[course.Tutor.Uuid] = append(m.courseByTutorUUID[course.Tutor.Uuid], course)
 	for studentUuid, _ := range course.Students {
@@ -176,6 +193,8 @@ func TestCourseManager_Create(t *testing.T) {
 	for studentUuid, _ := range predefinedCourse.Students {
 		predefinedStudents = append(predefinedStudents, studentUuid)
 	}
+	delete(predefinedCourse.Students, predefinedStudents[0])
+	refinedStudents := predefinedCourse.Students
 
 	type fields struct {
 		repo   Repo
@@ -301,22 +320,84 @@ func TestCourseManager_Create(t *testing.T) {
 				course: predefinedCourse,
 			},
 			want: &models.Course{
-				Uuid:     fixedUuid,
-				Name:     "",
-				Tutor:    &models.Tutor{},
-				Students: nil,
+				Uuid: fixedUuid,
+				Name: "test course",
+				Tutor: &models.Tutor{
+					User: models.User{
+						Uuid: fixedUuid,
+					},
+				},
+				Students: refinedStudents,
+			},
+		},
+		{
+			name: "err at Create",
+			fields: fields{
+				repo: &mockRepo{
+					courseByStudentUUID: map[uuid.UUID][]models.Course{
+						predefinedStudents[0]: {
+							models.Course{
+								Name: "Course 1",
+							},
+							models.Course{
+								Name: "Course 2",
+							},
+							models.Course{
+								Name: "Course 3",
+							},
+							models.Course{
+								Name: "Course 4",
+							},
+						},
+					},
+					errCreate: newMockError(),
+				},
+			},
+			args: args{
+				ctx:    context.TODO(),
+				course: predefinedCourse,
 			},
 			wantErr:     true,
-			expectedErr: fmt.Errorf("unable to retrieve courses: %w", newMockError()),
+			expectedErr: fmt.Errorf("unable to create the course: %w", newMockError()),
+		},
+		{
+			name: "err at ById",
+			fields: fields{
+				repo: &mockRepo{
+					courseByStudentUUID: map[uuid.UUID][]models.Course{
+						predefinedStudents[0]: {
+							models.Course{
+								Name: "Course 1",
+							},
+							models.Course{
+								Name: "Course 2",
+							},
+							models.Course{
+								Name: "Course 3",
+							},
+							models.Course{
+								Name: "Course 4",
+							},
+						},
+					},
+					errById: newMockError(),
+				},
+			},
+			args: args{
+				ctx:    context.TODO(),
+				course: predefinedCourse,
+			},
+			wantErr:     true,
+			expectedErr: fmt.Errorf("unable to retrieve the course: %w", newMockError()),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &CourseManager{
-				repo:   tt.fields.repo,
-				logger: tt.fields.logger,
+			courseManager, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatalf("unexpected error %v", err)
 			}
-			got, err := c.Create(tt.args.ctx, tt.args.course)
+			got, err := courseManager.Create(tt.args.ctx, tt.args.course)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 				return
