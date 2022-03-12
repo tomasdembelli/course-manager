@@ -17,7 +17,7 @@ type Repo interface {
 	List(ctx context.Context) ([]models.Course, error)
 	Create(ctx context.Context, course models.Course) error
 	Delete(ctx context.Context, uuid uuid.UUID) error
-	Update(ctx context.Context, uuid uuid.UUID, course models.Course) error
+	Update(ctx context.Context, course models.Course) error
 }
 
 // CourseManager is the service for managing the courses.
@@ -94,4 +94,39 @@ func (c *CourseManager) Create(ctx context.Context, course models.Course) (*mode
 	}
 
 	return &courseCreated, nil
+}
+
+// RegisterStudent registers the given models.Student to the given course.
+// This is an idempotent operation.
+// It will return an error if the given course is not found or unable to update it.
+func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID, student models.Student) error {
+	course, err := c.repo.ById(ctx, courseUUID)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve the course: %w", err)
+	}
+	course.Students[student.Uuid] = student
+	err = c.repo.Update(ctx, course)
+	if err != nil {
+		return fmt.Errorf("unable to update the course: %w", err)
+	}
+
+	return nil
+}
+
+// UnregisterStudent removes the given models.Student from the given course.
+// This is an idempotent operation.
+// It will return an error if the given course is not found or unable to update it.
+// If the student has not been registered to the course previously, no error will be returned (no-op).
+func (c CourseManager) UnregisterStudent(ctx context.Context, courseUUID uuid.UUID, student models.Student) error {
+	course, err := c.repo.ById(ctx, courseUUID)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve the course: %w", err)
+	}
+	delete(course.Students, student.Uuid)
+	err = c.repo.Update(ctx, course)
+	if err != nil {
+		return fmt.Errorf("unable to update the course: %w", err)
+	}
+
+	return nil
 }

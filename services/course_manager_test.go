@@ -41,6 +41,19 @@ type mockRepo struct {
 	errByStudent        error
 	errCreate           error
 	errById             error
+	errUpdate           error
+}
+
+func (m *mockRepo) safeInit() {
+	if m.courseByUUID == nil {
+		m.courseByUUID = make(map[uuid.UUID]models.Course)
+	}
+	if m.courseByTutorUUID == nil {
+		m.courseByTutorUUID = make(map[uuid.UUID][]models.Course)
+	}
+	if m.courseByStudentUUID == nil {
+		m.courseByStudentUUID = make(map[uuid.UUID][]models.Course)
+	}
 }
 
 func (m *mockRepo) ById(_ context.Context, courseUuid uuid.UUID) (models.Course, error) {
@@ -58,7 +71,6 @@ func (m *mockRepo) ByTutor(_ context.Context, tutorUuid uuid.UUID) ([]models.Cou
 }
 
 func (m *mockRepo) ByStudent(_ context.Context, studentUuid uuid.UUID) ([]models.Course, error) {
-
 	if m.errByStudent != nil {
 		return nil, m.errByStudent
 	}
@@ -71,17 +83,9 @@ func (m *mockRepo) List(ctx context.Context) ([]models.Course, error) {
 }
 
 func (m *mockRepo) Create(_ context.Context, course models.Course) error {
+	m.safeInit()
 	if m.errCreate != nil {
 		return m.errCreate
-	}
-	if m.courseByUUID == nil {
-		m.courseByUUID = make(map[uuid.UUID]models.Course)
-	}
-	if m.courseByTutorUUID == nil {
-		m.courseByTutorUUID = make(map[uuid.UUID][]models.Course)
-	}
-	if m.courseByStudentUUID == nil {
-		m.courseByStudentUUID = make(map[uuid.UUID][]models.Course)
 	}
 	m.courseByUUID[course.Uuid] = course
 	m.courseByTutorUUID[course.Tutor.Uuid] = append(m.courseByTutorUUID[course.Tutor.Uuid], course)
@@ -96,9 +100,17 @@ func (m *mockRepo) Delete(ctx context.Context, uuid uuid.UUID) error {
 	panic("implement me")
 }
 
-func (m *mockRepo) Update(ctx context.Context, uuid uuid.UUID, course models.Course) error {
-	//TODO implement me
-	panic("implement me")
+func (m *mockRepo) Update(_ context.Context, course models.Course) error {
+	m.safeInit()
+	if m.errUpdate != nil {
+		return newMockError()
+	}
+	m.courseByTutorUUID[course.Tutor.Uuid] = append(m.courseByTutorUUID[course.Tutor.Uuid], course)
+	for studentUuid, _ := range course.Students {
+		m.courseByStudentUUID[studentUuid] = append(m.courseByStudentUUID[studentUuid], course)
+	}
+	m.courseByUUID[course.Uuid] = course
+	return nil
 }
 
 func TestNewCourseManager(t *testing.T) {
@@ -187,7 +199,6 @@ func generateUsersInCourse(numberOfStudents int) models.Course {
 }
 
 func TestCourseManager_Create(t *testing.T) {
-
 	predefinedCourse := generateUsersInCourse(10)
 	var predefinedStudents []uuid.UUID
 	for studentUuid, _ := range predefinedCourse.Students {
@@ -223,8 +234,7 @@ func TestCourseManager_Create(t *testing.T) {
 		{
 			name: "error at ByTutor",
 			fields: fields{repo: &mockRepo{
-				courseByUUID: nil,
-				errByTutor:   newMockError(),
+				errByTutor: newMockError(),
 			}},
 			args: args{ctx: context.TODO(), course: models.Course{
 				Tutor: &models.Tutor{
@@ -407,6 +417,205 @@ func TestCourseManager_Create(t *testing.T) {
 			}
 			if tt.wantErr && !reflect.DeepEqual(err, tt.expectedErr) {
 				t.Errorf("Create() error = %v, expectedErr = %v", err, tt.expectedErr)
+			}
+		})
+	}
+}
+
+func TestCourseManager_RegisterStudent(t *testing.T) {
+	predefinedCourse := generateUsersInCourse(10)
+	type fields struct {
+		repo   Repo
+		logger *log.Logger
+	}
+	type args struct {
+		ctx        context.Context
+		courseUUID uuid.UUID
+		student    models.Student
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		wantErr            bool
+		expectedErrMessage string
+	}{
+		{
+			name: "error at ById",
+			fields: fields{
+				repo: &mockRepo{
+					errById: newMockError(),
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: uuid.New(),
+				student:    models.Student{},
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to retrieve the course: mock error",
+		},
+		{
+			name: "error at Update",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: predefinedCourse,
+					},
+					errUpdate: newMockError(),
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+				student: models.Student{
+					User: models.User{Uuid: fixedUuid},
+				},
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to update the course: mock error",
+		},
+		{
+			name: "successful registry",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: predefinedCourse,
+					},
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+				student: models.Student{
+					User: models.User{Uuid: fixedUuid},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatal("unexpected error", err)
+			}
+			err = c.RegisterStudent(tt.args.ctx, tt.args.courseUUID, tt.args.student)
+			if tt.wantErr && tt.expectedErrMessage != err.Error() {
+				t.Errorf("RegisterStudent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				if err != nil {
+					t.Errorf("unexpected error RegisterStudent() error = %v", err)
+				}
+				courses, err := c.repo.ByStudent(tt.args.ctx, tt.args.student.Uuid)
+				if err != nil {
+					t.Fatal("unexpected error", err)
+				}
+				if courses[0].Students[tt.args.student.Uuid].Uuid != tt.args.student.Uuid {
+					t.Errorf("failed to register the student. expected %v, got %v", tt.args.student.Uuid, courses[0].Students[tt.args.student.Uuid].Uuid)
+				}
+			}
+		})
+	}
+}
+
+func TestCourseManager_UnregisterStudent(t *testing.T) {
+	predefinedCourse := generateUsersInCourse(10)
+	var anExistingStudent models.Student
+	for _, student := range predefinedCourse.Students {
+		anExistingStudent = student
+		break
+	}
+	type fields struct {
+		repo   Repo
+		logger *log.Logger
+	}
+	type args struct {
+		ctx        context.Context
+		courseUUID uuid.UUID
+		student    models.Student
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		wantErr            bool
+		expectedErrMessage string
+	}{
+		{
+			name: "error at ById",
+			fields: fields{
+				repo: &mockRepo{
+					errById: newMockError(),
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: uuid.New(),
+				student:    models.Student{},
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to retrieve the course: mock error",
+		},
+		{
+			name: "error at Update",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: predefinedCourse,
+					},
+					errUpdate: newMockError(),
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+				student: models.Student{
+					User: models.User{Uuid: fixedUuid},
+				},
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to update the course: mock error",
+		},
+		{
+			name: "successful un-registry",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: predefinedCourse,
+					},
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+				student:    anExistingStudent,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatal("unexpected error", err)
+			}
+			err = c.UnregisterStudent(tt.args.ctx, tt.args.courseUUID, tt.args.student)
+			if tt.wantErr && tt.expectedErrMessage != err.Error() {
+				t.Errorf("RegisterStudent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				if err != nil {
+					t.Errorf("unexpected error RegisterStudent() error = %v", err)
+				}
+				courses, err := c.repo.ByStudent(tt.args.ctx, tt.args.student.Uuid)
+				if err != nil {
+					t.Fatal("unexpected error", err)
+				}
+				if len(courses) != 0 {
+					t.Errorf("failed to un-register the student. expected 0, got %v", len(courses))
+				}
 			}
 		})
 	}
