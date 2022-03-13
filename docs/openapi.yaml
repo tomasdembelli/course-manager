@@ -22,7 +22,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewCourse'
+              type: object
+              properties:
+                course:
+                  $ref: '#/components/schemas/NewCourse'
       responses:
         201:
           description: Created
@@ -95,7 +98,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Student'
+              type: object
+              properties:
+                student:
+                  $ref: '#/components/schemas/Student'
       responses:
         204:
           description: Registered
