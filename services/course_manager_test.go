@@ -41,6 +41,7 @@ type mockRepo struct {
 	errById      error
 	errUpdate    error
 	errDelete    error
+	errList      error
 }
 
 func (m *mockRepo) safeInit() {
@@ -85,8 +86,16 @@ func (m *mockRepo) ByStudent(_ context.Context, studentUuid uuid.UUID) ([]models
 }
 
 func (m *mockRepo) List(_ context.Context) ([]models.Course, error) {
-	//TODO implement me
-	panic("implement me")
+	if m.errList != nil {
+		return nil, m.errList
+	}
+	var courses = make([]models.Course, len(m.courseByUUID))
+	var counter int
+	for _, course := range m.courseByUUID {
+		courses[counter] = course
+		counter++
+	}
+	return courses, nil
 }
 
 func (m *mockRepo) Create(_ context.Context, course models.Course) error {
@@ -698,6 +707,92 @@ func TestCourseManager_Delete(t *testing.T) {
 					t.Errorf("failed to delete course %v", tt.args.courseUUID)
 				}
 
+			}
+
+		})
+	}
+}
+
+func TestCourseManager_List(t *testing.T) {
+	tutor := models.Tutor{
+		User: models.User{
+			Uuid: uuid.New(),
+		},
+	}
+	type fields struct {
+		repo   Repo
+		logger *log.Logger
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		want               []models.Course
+		wantErr            bool
+		expectedErrMessage string
+	}{
+		{
+			name: "error at repo list",
+			fields: fields{
+				repo: &mockRepo{
+					errList: newMockError(),
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to retrieve courses: mock error",
+		},
+		{
+			name: "successful listing",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: {
+							Uuid:  fixedUuid,
+							Name:  "course 1",
+							Tutor: &tutor,
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			want: []models.Course{
+				{
+					Uuid:  fixedUuid,
+					Name:  "course 1",
+					Tutor: &tutor,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatal("unexpected error", err)
+			}
+			got, err := c.List(tt.args.ctx)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error, but none raised")
+				}
+				if tt.expectedErrMessage != err.Error() {
+					t.Errorf("RegisterStudent() error = %v, wantErr %v", err.Error(), tt.expectedErrMessage)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error List() error = %v", err)
+				}
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("List() got = %v, want %v", got, tt.want)
+				}
 			}
 
 		})

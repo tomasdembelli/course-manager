@@ -38,7 +38,7 @@ paths:
           $ref: '#/components/responses/notFound'
         500:
           description: Unexpected error.
-  /getCourse/{courseUuid}:
+  /getCourse/{courseUUID}:
     get:
       tags:
         - course
@@ -82,7 +82,7 @@ paths:
           $ref: '#/components/responses/notFound'
         500:
           description: Unexpected error.
-  /registerStudent/{courseUuid}:
+  /registerStudent/{courseUUID}:
     put:
       tags:
         - course
@@ -107,7 +107,7 @@ paths:
           $ref: '#/components/responses/notFound'
         500:
           description: Unexpected error.
-  /deleteStudent/{courseUuid}:
+  /unregisterStudent/{courseUUID}:
     put:
       tags:
         - course
@@ -122,7 +122,7 @@ paths:
             schema:
               type: object
               properties:
-                uuid:
+                studentUUID:
                   $ref: '#/components/schemas/uuid'
       responses:
         204:
@@ -138,7 +138,7 @@ paths:
 components:
   parameters:
     uuid:
-      name: courseUuid
+      name: courseUUID
       description: Course UUID
       in: path
       required: true

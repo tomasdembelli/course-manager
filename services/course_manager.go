@@ -138,3 +138,13 @@ func (c *CourseManager) Delete(ctx context.Context, courseUUID uuid.UUID) error 
 	}
 	return nil
 }
+
+// List returns all courses in the repo.
+// It returns an error if it fails to fetch courses from the repo.
+func (c *CourseManager) List(ctx context.Context) ([]models.Course, error) {
+	courses, err := c.repo.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve courses: %w", err)
+	}
+	return courses, nil
+}
