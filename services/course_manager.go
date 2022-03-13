@@ -109,7 +109,6 @@ func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID
 	if err != nil {
 		return fmt.Errorf("unable to update the course: %w", err)
 	}
-
 	return nil
 }
 
@@ -127,6 +126,15 @@ func (c CourseManager) UnregisterStudent(ctx context.Context, courseUUID uuid.UU
 	if err != nil {
 		return fmt.Errorf("unable to update the course: %w", err)
 	}
+	return nil
+}
 
+// Delete deletes the course for the given courseUUID.
+// This is an idempotent operation.
+func (c *CourseManager) Delete(ctx context.Context, courseUUID uuid.UUID) error {
+	err := c.repo.Delete(ctx, courseUUID)
+	if err != nil {
+		return fmt.Errorf("unable to delete the course: %w", err)
+	}
 	return nil
 }

@@ -34,25 +34,18 @@ func (e *mockError) Is(target error) bool {
 }
 
 type mockRepo struct {
-	courseByUUID        map[uuid.UUID]models.Course
-	courseByTutorUUID   map[uuid.UUID][]models.Course
-	courseByStudentUUID map[uuid.UUID][]models.Course
-	errByTutor          error
-	errByStudent        error
-	errCreate           error
-	errById             error
-	errUpdate           error
+	courseByUUID map[uuid.UUID]models.Course
+	errByTutor   error
+	errByStudent error
+	errCreate    error
+	errById      error
+	errUpdate    error
+	errDelete    error
 }
 
 func (m *mockRepo) safeInit() {
 	if m.courseByUUID == nil {
 		m.courseByUUID = make(map[uuid.UUID]models.Course)
-	}
-	if m.courseByTutorUUID == nil {
-		m.courseByTutorUUID = make(map[uuid.UUID][]models.Course)
-	}
-	if m.courseByStudentUUID == nil {
-		m.courseByStudentUUID = make(map[uuid.UUID][]models.Course)
 	}
 }
 
@@ -67,17 +60,31 @@ func (m *mockRepo) ByTutor(_ context.Context, tutorUuid uuid.UUID) ([]models.Cou
 	if m.errByTutor != nil {
 		return nil, m.errByTutor
 	}
-	return m.courseByTutorUUID[tutorUuid], nil
+	var result []models.Course
+	for _, course := range m.courseByUUID {
+		if course.Tutor.Uuid == tutorUuid {
+			result = append(result, course)
+		}
+	}
+	return result, nil
 }
 
 func (m *mockRepo) ByStudent(_ context.Context, studentUuid uuid.UUID) ([]models.Course, error) {
 	if m.errByStudent != nil {
 		return nil, m.errByStudent
 	}
-	return m.courseByStudentUUID[studentUuid], nil
+	var result []models.Course
+	for _, course := range m.courseByUUID {
+		for _, student := range course.Students {
+			if student.Uuid == studentUuid {
+				result = append(result, course)
+			}
+		}
+	}
+	return result, nil
 }
 
-func (m *mockRepo) List(ctx context.Context) ([]models.Course, error) {
+func (m *mockRepo) List(_ context.Context) ([]models.Course, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -88,26 +95,22 @@ func (m *mockRepo) Create(_ context.Context, course models.Course) error {
 		return m.errCreate
 	}
 	m.courseByUUID[course.Uuid] = course
-	m.courseByTutorUUID[course.Tutor.Uuid] = append(m.courseByTutorUUID[course.Tutor.Uuid], course)
-	for studentUuid, _ := range course.Students {
-		m.courseByStudentUUID[studentUuid] = append(m.courseByStudentUUID[studentUuid], course)
-	}
 	return nil
 }
 
-func (m *mockRepo) Delete(ctx context.Context, uuid uuid.UUID) error {
-	//TODO implement me
-	panic("implement me")
+func (m *mockRepo) Delete(_ context.Context, courseUUID uuid.UUID) error {
+	m.safeInit()
+	if m.errDelete != nil {
+		return m.errDelete
+	}
+	delete(m.courseByUUID, courseUUID)
+	return nil
 }
 
 func (m *mockRepo) Update(_ context.Context, course models.Course) error {
 	m.safeInit()
 	if m.errUpdate != nil {
 		return newMockError()
-	}
-	m.courseByTutorUUID[course.Tutor.Uuid] = append(m.courseByTutorUUID[course.Tutor.Uuid], course)
-	for studentUuid, _ := range course.Students {
-		m.courseByStudentUUID[studentUuid] = append(m.courseByStudentUUID[studentUuid], course)
 	}
 	m.courseByUUID[course.Uuid] = course
 	return nil
@@ -201,7 +204,7 @@ func generateUsersInCourse(numberOfStudents int) models.Course {
 func TestCourseManager_Create(t *testing.T) {
 	predefinedCourse := generateUsersInCourse(10)
 	var predefinedStudents []uuid.UUID
-	for studentUuid, _ := range predefinedCourse.Students {
+	for studentUuid := range predefinedCourse.Students {
 		predefinedStudents = append(predefinedStudents, studentUuid)
 	}
 	delete(predefinedCourse.Students, predefinedStudents[0])
@@ -250,17 +253,18 @@ func TestCourseManager_Create(t *testing.T) {
 		{
 			name: "tutor max course validation",
 			fields: fields{repo: &mockRepo{
-				courseByTutorUUID: map[uuid.UUID][]models.Course{
-					fixedUuid: {
-						models.Course{
-							Name: "course 1",
+				courseByUUID: map[uuid.UUID]models.Course{
+					uuid.New(): {
+						Tutor: &models.Tutor{
+							User: models.User{Uuid: fixedUuid},
 						},
-						models.Course{
-							Name: "course 2",
+						Name: "course 1",
+					},
+					uuid.New(): {
+						Tutor: &models.Tutor{
+							User: models.User{Uuid: fixedUuid},
 						},
-						models.Course{
-							Name: "course 3",
-						},
+						Name: "course 2",
 					},
 				},
 			}},
@@ -307,19 +311,49 @@ func TestCourseManager_Create(t *testing.T) {
 			name: "1 ineligible students out of 10",
 			fields: fields{
 				repo: &mockRepo{
-					courseByStudentUUID: map[uuid.UUID][]models.Course{
-						predefinedStudents[0]: {
-							models.Course{
-								Name: "Course 1",
+					courseByUUID: map[uuid.UUID]models.Course{
+						uuid.New(): {
+							Name: "course 1",
+							Tutor: &models.Tutor{
+								User: models.User{
+									Uuid: uuid.New(),
+								},
 							},
-							models.Course{
-								Name: "Course 2",
+							Students: map[uuid.UUID]models.Student{
+								predefinedStudents[0]: {},
 							},
-							models.Course{
-								Name: "Course 3",
+						},
+						uuid.New(): {
+							Name: "course 2",
+							Tutor: &models.Tutor{
+								User: models.User{
+									Uuid: uuid.New(),
+								},
 							},
-							models.Course{
-								Name: "Course 4",
+							Students: map[uuid.UUID]models.Student{
+								predefinedStudents[0]: {},
+							},
+						},
+						uuid.New(): {
+							Name: "course 3",
+							Tutor: &models.Tutor{
+								User: models.User{
+									Uuid: uuid.New(),
+								},
+							},
+							Students: map[uuid.UUID]models.Student{
+								predefinedStudents[0]: {},
+							},
+						},
+						uuid.New(): {
+							Name: "course 4",
+							Tutor: &models.Tutor{
+								User: models.User{
+									Uuid: uuid.New(),
+								},
+							},
+							Students: map[uuid.UUID]models.Student{
+								predefinedStudents[0]: {},
 							},
 						},
 					},
@@ -344,22 +378,6 @@ func TestCourseManager_Create(t *testing.T) {
 			name: "err at Create",
 			fields: fields{
 				repo: &mockRepo{
-					courseByStudentUUID: map[uuid.UUID][]models.Course{
-						predefinedStudents[0]: {
-							models.Course{
-								Name: "Course 1",
-							},
-							models.Course{
-								Name: "Course 2",
-							},
-							models.Course{
-								Name: "Course 3",
-							},
-							models.Course{
-								Name: "Course 4",
-							},
-						},
-					},
 					errCreate: newMockError(),
 				},
 			},
@@ -374,22 +392,6 @@ func TestCourseManager_Create(t *testing.T) {
 			name: "err at ById",
 			fields: fields{
 				repo: &mockRepo{
-					courseByStudentUUID: map[uuid.UUID][]models.Course{
-						predefinedStudents[0]: {
-							models.Course{
-								Name: "Course 1",
-							},
-							models.Course{
-								Name: "Course 2",
-							},
-							models.Course{
-								Name: "Course 3",
-							},
-							models.Course{
-								Name: "Course 4",
-							},
-						},
-					},
 					errById: newMockError(),
 				},
 			},
@@ -603,20 +605,101 @@ func TestCourseManager_UnregisterStudent(t *testing.T) {
 			}
 			err = c.UnregisterStudent(tt.args.ctx, tt.args.courseUUID, tt.args.student)
 			if tt.wantErr && tt.expectedErrMessage != err.Error() {
-				t.Errorf("RegisterStudent() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("UnregisterStudent() error = %v, wantErr %v", err.Error(), tt.expectedErrMessage)
 			}
 			if !tt.wantErr {
 				if err != nil {
-					t.Errorf("unexpected error RegisterStudent() error = %v", err)
+					t.Errorf("unexpected error UnregisterStudent() error = %v", err)
 				}
 				courses, err := c.repo.ByStudent(tt.args.ctx, tt.args.student.Uuid)
 				if err != nil {
 					t.Fatal("unexpected error", err)
 				}
-				if len(courses) != 0 {
-					t.Errorf("failed to un-register the student. expected 0, got %v", len(courses))
+				for _, course := range courses {
+					if course.Uuid == tt.args.courseUUID {
+						t.Errorf("failed to un-register the student from the course %v", course)
+					}
 				}
+
 			}
+		})
+	}
+}
+
+func TestCourseManager_Delete(t *testing.T) {
+	type fields struct {
+		repo   Repo
+		logger *log.Logger
+	}
+	type args struct {
+		ctx        context.Context
+		courseUUID uuid.UUID
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		wantErr            bool
+		expectedErrMessage string
+	}{
+		{
+			name: "error at repo Delete",
+			fields: fields{
+				repo: &mockRepo{
+					errDelete: newMockError(),
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: uuid.New(),
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to delete the course: mock error",
+		},
+		{
+			name: "successful Delete",
+			fields: fields{
+				repo: &mockRepo{
+					courseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: {},
+					},
+				},
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatal("unexpected error", err)
+			}
+			err = c.Delete(tt.args.ctx, tt.args.courseUUID)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error, but none raised")
+				}
+				if tt.expectedErrMessage != err.Error() {
+					t.Errorf("RegisterStudent() error = %v, wantErr %v", err.Error(), tt.expectedErrMessage)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error Delete() error = %v", err)
+				}
+				course, err := c.repo.ById(tt.args.ctx, tt.args.courseUUID)
+				if err != nil {
+					t.Fatal("unexpected error", err)
+				}
+				if course.Uuid == tt.args.courseUUID {
+					t.Errorf("failed to delete course %v", tt.args.courseUUID)
+				}
+
+			}
+
 		})
 	}
 }
