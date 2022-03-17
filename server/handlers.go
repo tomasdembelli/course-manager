@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/tomasdembelli/course-manager/services"
@@ -52,13 +53,17 @@ func (a *ApiV1) ListCourses(ec echo.Context) error {
 func (a *ApiV1) GetCourse(ec echo.Context) error {
 	request := new(CourseByUUID)
 	if err := ec.Bind(request); err != nil {
-		a.logger.Printf("unable to bind request params: %v", err)
+		a.logger.Println(err)
 		return err
 	}
 	course, err := a.courseManagerSvc.Get(ec.Request().Context(), request.UUID)
 	if err != nil {
-		a.logger.Printf("unable to retrieve the course: %v", err)
-		return ec.JSON(http.StatusNotFound, notFoundMessage)
+		if errors.Is(err, services.NewCourseNotFoundErr(request.UUID)) {
+			return ec.JSON(http.StatusNotFound, notFoundMessage)
+		} else {
+			a.logger.Println(err)
+			return err
+		}
 	}
 	return ec.JSON(http.StatusOK, course)
 }
@@ -66,7 +71,7 @@ func (a *ApiV1) GetCourse(ec echo.Context) error {
 func (a *ApiV1) RegisterStudent(ec echo.Context) error {
 	request := new(RegisterStudent)
 	if err := ec.Bind(request); err != nil {
-		a.logger.Printf("unable to bind request params: %v", err)
+		a.logger.Println(err)
 		return err
 	}
 	err := a.courseManagerSvc.RegisterStudent(ec.Request().Context(), request.CourseUUID, request.Student)
@@ -80,7 +85,7 @@ func (a *ApiV1) RegisterStudent(ec echo.Context) error {
 func (a *ApiV1) UnregisterStudent(ec echo.Context) error {
 	request := new(UnregisterStudent)
 	if err := ec.Bind(request); err != nil {
-		a.logger.Printf("unable to bind request params: %v", err)
+		a.logger.Println(err)
 		return err
 	}
 	err := a.courseManagerSvc.UnregisterStudent(ec.Request().Context(), request.CourseUUID, request.StudentUUID)
@@ -94,7 +99,7 @@ func (a *ApiV1) UnregisterStudent(ec echo.Context) error {
 func (a *ApiV1) Create(ec echo.Context) error {
 	request := new(CreateCourse)
 	if err := ec.Bind(request); err != nil {
-		a.logger.Printf("unable to bind request params: %v", err)
+		a.logger.Println(err)
 		return err
 	}
 	course, err := a.courseManagerSvc.Create(ec.Request().Context(), request.Course)

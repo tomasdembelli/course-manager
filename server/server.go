@@ -2,34 +2,21 @@ package server
 
 import (
 	"github.com/labstack/echo/v4"
-	db_mock "github.com/tomasdembelli/course-manager/db-mock"
 	"github.com/tomasdembelli/course-manager/services"
 	"log"
-	"os"
 	"strconv"
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 )
 
-const devEnvironment = "development"
-
 type Config struct {
-	Port   int
-	Logger *log.Logger
+	Port             int
+	Logger           *log.Logger
+	CourseManagerSvc *services.CourseManager
 }
 
 func StartServer(config *Config) {
-	var repo services.Repo
-	if os.Getenv("ENVIRONMENT") == devEnvironment {
-		repo = db_mock.NewMockRepo(&db_mock.Config{
-			CourseByUUID: db_mock.CourseByUUID,
-		})
-	}
-	courseManager, err := services.NewCourseManager(repo, log.Default())
-	if err != nil {
-		log.Fatalf("unable to start course manager service %v", err)
-	}
-	apiV1, err := NewApiV1(&courseManager, config.Logger)
+	apiV1, err := NewApiV1(config.CourseManagerSvc, config.Logger)
 	if err != nil {
 		log.Fatal("unable to start apiV1", err)
 	}

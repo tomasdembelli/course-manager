@@ -489,7 +489,7 @@ func TestCourseManager_Delete(t *testing.T) {
 				courseUUID: uuid.New(),
 			},
 			wantErr:            true,
-			expectedErrMessage: "unable to delete the courseMeta: mock error",
+			expectedErrMessage: "unable to delete the course: mock error",
 		},
 		{
 			name: "successful Delete",
@@ -525,8 +525,8 @@ func TestCourseManager_Delete(t *testing.T) {
 				if err != nil {
 					t.Errorf("unexpected error Delete() error = %v", err)
 				}
-				_, err := c.repo.ById(tt.args.ctx, tt.args.courseUUID)
-				if err.Error() != "course not found" {
+				course, _ := c.repo.ById(tt.args.ctx, tt.args.courseUUID)
+				if course.Uuid != uuid.Nil {
 					t.Errorf("failed to delete course %v", tt.args.courseUUID)
 				}
 
@@ -654,7 +654,7 @@ func TestCourseManager_Get(t *testing.T) {
 				courseUUID: uuid.New(),
 			},
 			wantErr:            true,
-			expectedErrMessage: "unable to retrieve courseMeta by UUID: mock error",
+			expectedErrMessage: "unable to retrieve course by UUID: mock error",
 		},
 		{
 			name: "successful Get",

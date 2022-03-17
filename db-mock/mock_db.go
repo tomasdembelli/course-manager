@@ -2,7 +2,6 @@ package db_mock
 
 import (
 	"context"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/tomasdembelli/course-manager/models"
 )
@@ -77,10 +76,7 @@ func (m *MockRepo) ById(_ context.Context, courseUuid uuid.UUID) (*models.Course
 	if m.errById != nil {
 		return nil, m.errById
 	}
-	course, found := m.courseByUUID[courseUuid]
-	if !found {
-		return nil, fmt.Errorf("course not found (UUID: %v)", courseUuid)
-	}
+	course := m.courseByUUID[courseUuid]
 	return &course, nil
 }
 
