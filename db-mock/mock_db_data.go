@@ -6,8 +6,8 @@ import (
 )
 
 var CourseByUUID = map[uuid.UUID]models.Course{
-	uuid.New(): {
-		Uuid: uuid.New(),
+	uuid.MustParse("2d2e10a1-94e2-4dff-a244-8733bee8b7a9"): {
+		Uuid: uuid.MustParse("2d2e10a1-94e2-4dff-a244-8733bee8b7a9"),
 		Name: "Mock Course",
 		Tutor: &models.Tutor{
 			User: models.User{

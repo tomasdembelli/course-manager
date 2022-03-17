@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	courseNotFoundFmt = "CourseManager with UUID = %d not found"
+	courseNotFoundFmt = "Course with UUID = %v not found"
 	cannotBeNilFmt    = "%v cannot be nil"
 	validationErrFmt  = "validation failed: %v"
 )

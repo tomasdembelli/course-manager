@@ -4,5 +4,5 @@ package models
 // It embeds the User type.
 type Student struct {
 	User
-	Faculty notEmptyString `json:"faculty"`
+	Faculty string `json:"faculty"`
 }

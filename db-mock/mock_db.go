@@ -2,6 +2,7 @@ package db_mock
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/tomasdembelli/course-manager/models"
 )
@@ -72,11 +73,15 @@ func (m *MockRepo) safeInit() {
 	}
 }
 
-func (m *MockRepo) ById(_ context.Context, courseUuid uuid.UUID) (models.Course, error) {
+func (m *MockRepo) ById(_ context.Context, courseUuid uuid.UUID) (*models.Course, error) {
 	if m.errById != nil {
-		return models.Course{}, m.errById
+		return nil, m.errById
 	}
-	return m.courseByUUID[courseUuid], nil
+	course, found := m.courseByUUID[courseUuid]
+	if !found {
+		return nil, fmt.Errorf("course not found")
+	}
+	return &course, nil
 }
 
 func (m *MockRepo) ByTutor(_ context.Context, tutorUuid uuid.UUID) ([]models.Course, error) {

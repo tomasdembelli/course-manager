@@ -2,12 +2,13 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 )
 
-func TestUser_UnmarshalJSON(t *testing.T) {
+func TestUser_Valid(t *testing.T) {
 	tests := map[string]struct {
 		data        []byte
 		shouldErr   bool
@@ -21,24 +22,6 @@ func TestUser_UnmarshalJSON(t *testing.T) {
 			  }`,
 			),
 		},
-		"invalid uuid": {
-			data: []byte(`  {
-				"uuid": "99999-a216-4083-8bc2-0c4eda703b4a",
-				"name": "John",
-				"lastname": "Doe"
-			  }`,
-			),
-			shouldErr: true,
-		},
-		"empty uuid": {
-			data: []byte(`  {
-				"uuid": "",
-				"name": "John",
-				"lastname": "Doe"
-			  }`,
-			),
-			shouldErr: true,
-		},
 		"empty name": {
 			data: []byte(`  {
 				"uuid": "c46358be-a216-4083-8bc2-0c4eda703b4a",
@@ -47,18 +30,29 @@ func TestUser_UnmarshalJSON(t *testing.T) {
 			  }`,
 			),
 			shouldErr:   true,
-			expectedErr: canNotBeEmptyErr,
+			expectedErr: fmt.Errorf(canNotBeEmptyFmt, "name"),
 		},
 	}
 	for desc, tt := range tests {
 		t.Run(desc, func(t *testing.T) {
 			var s User
 			err := json.Unmarshal(tt.data, &s)
-			if tt.shouldErr && err == nil {
-				t.Errorf("unexpected error %v", err)
+			if err != nil {
+				t.Fatalf("unexpected error %v", err)
 			}
-			if tt.expectedErr != nil && tt.expectedErr != err {
-				t.Errorf("expected %v, but got %v", tt.expectedErr, err)
+
+			err = s.Valid()
+			if tt.shouldErr {
+				if err == nil {
+					t.Errorf("expected error but got nothing")
+				}
+				if tt.expectedErr.Error() != err.Error() {
+					t.Errorf("expected %v, but got %v", tt.expectedErr.Error(), err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error %v", err)
+				}
 			}
 		})
 	}

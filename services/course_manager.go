@@ -11,7 +11,7 @@ import (
 
 // Repo is the interface that defines the methods for persisting and manipulating service data.
 type Repo interface {
-	ById(ctx context.Context, courseUUID uuid.UUID) (models.Course, error)
+	ById(ctx context.Context, courseUUID uuid.UUID) (*models.Course, error)
 	ByTutor(ctx context.Context, tutorUUID uuid.UUID) ([]models.Course, error)
 	ByStudent(ctx context.Context, studentUUID uuid.UUID) ([]models.Course, error)
 	List(ctx context.Context) ([]models.Course, error)
@@ -93,7 +93,7 @@ func (c *CourseManager) Create(ctx context.Context, course models.Course) (*mode
 		return nil, fmt.Errorf("unable to retrieve the course: %w", err)
 	}
 
-	return &courseCreated, nil
+	return courseCreated, nil
 }
 
 // RegisterStudent registers the given models.Student to the given course.
@@ -105,7 +105,7 @@ func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID
 		return fmt.Errorf("unable to retrieve the course: %w", err)
 	}
 	course.Students[student.Uuid] = student
-	err = c.repo.Update(ctx, course)
+	err = c.repo.Update(ctx, *course)
 	if err != nil {
 		return fmt.Errorf("unable to update the course: %w", err)
 	}
@@ -116,13 +116,13 @@ func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID
 // This is an idempotent operation.
 // It will return an error if the given course is not found or unable to update it.
 // If the student has not been registered to the course previously, no error will be returned (no-op).
-func (c CourseManager) UnregisterStudent(ctx context.Context, courseUUID uuid.UUID, student models.Student) error {
+func (c CourseManager) UnregisterStudent(ctx context.Context, courseUUID, studentUUID uuid.UUID) error {
 	course, err := c.repo.ById(ctx, courseUUID)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve the course: %w", err)
 	}
-	delete(course.Students, student.Uuid)
-	err = c.repo.Update(ctx, course)
+	delete(course.Students, studentUUID)
+	err = c.repo.Update(ctx, *course)
 	if err != nil {
 		return fmt.Errorf("unable to update the course: %w", err)
 	}
@@ -147,4 +147,17 @@ func (c *CourseManager) List(ctx context.Context) ([]models.Course, error) {
 		return nil, fmt.Errorf("unable to retrieve courses: %w", err)
 	}
 	return courses, nil
+}
+
+// Get returns the models.Course for the given course UUID.
+func (c CourseManager) Get(ctx context.Context, courseUUID uuid.UUID) (*models.Course, error) {
+	course, err := c.repo.ById(ctx, courseUUID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve course by UUID: %w", err)
+	}
+	fmt.Println(course)
+	if course.Uuid == uuid.Nil {
+		return nil, NewCourseNotFoundErr(courseUUID)
+	}
+	return course, nil
 }

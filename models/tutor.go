@@ -4,6 +4,6 @@ package models
 // It embeds the User type.
 type Tutor struct {
 	User
-	Faculty    notEmptyString `json:"faculty"`
-	LecturerOf notEmptyString `json:"lecturerOf"`
+	Faculty    string `json:"faculty"`
+	LecturerOf string `json:"lecturerOf"`
 }

@@ -1,33 +1,27 @@
 package models
 
 import (
-	"encoding/json"
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
 
-var canNotBeEmptyErr = errors.New("field can not be empty")
-
-// notEmptyString is a wrapper around the string type.
-type notEmptyString string
+const canNotBeEmptyFmt = "%s cannot be empty"
 
 // User constitutes a base model for the person who interacts with a course.
 type User struct {
-	Uuid     uuid.UUID      `json:"uuid"`
-	Name     notEmptyString `json:"name"`
-	Lastname notEmptyString `json:"lastname"`
+	Uuid     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Lastname string    `json:"lastname"`
 }
 
-// UnmarshalJSON is called when a string of byte is unmarsalled into a notEmptyString type variable.
-// It returns an error when the given data is an empty string.
-func (s *notEmptyString) UnmarshalJSON(data []byte) error {
-	var ns string
-	if err := json.Unmarshal(data, &ns); err != nil {
-		return err
+// Valid returns an error when the name and/or lastname are empty strings.
+func (u *User) Valid() error {
+	if u.Name == "" {
+		return fmt.Errorf(canNotBeEmptyFmt, "name")
 	}
-	if ns == "" {
-		return canNotBeEmptyErr
+	if u.Lastname == "" {
+		return fmt.Errorf(canNotBeEmptyFmt, "lastname")
 	}
 	return nil
 }

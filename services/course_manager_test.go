@@ -586,11 +586,8 @@ func TestCourseManager_Delete(t *testing.T) {
 				if err != nil {
 					t.Errorf("unexpected error Delete() error = %v", err)
 				}
-				course, err := c.repo.ById(tt.args.ctx, tt.args.courseUUID)
-				if err != nil {
-					t.Fatal("unexpected error", err)
-				}
-				if course.Uuid == tt.args.courseUUID {
+				_, err := c.repo.ById(tt.args.ctx, tt.args.courseUUID)
+				if err.Error() != "course not found" {
 					t.Errorf("failed to delete course %v", tt.args.courseUUID)
 				}
 
@@ -682,6 +679,79 @@ func TestCourseManager_List(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestCourseManager_Get(t *testing.T) {
+	type fields struct {
+		repo   Repo
+		logger *log.Logger
+	}
+	type args struct {
+		ctx        context.Context
+		courseUUID uuid.UUID
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		want               *models.Course
+		wantErr            bool
+		expectedErrMessage string
+	}{
+		{
+			name: "err at ById",
+			fields: fields{
+				repo: NewMockRepo(&Config{
+					ErrById: NewMockError(),
+				}),
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: uuid.New(),
+			},
+			wantErr:            true,
+			expectedErrMessage: "unable to retrieve course by UUID: mock error",
+		},
+		{
+			name: "successful Get",
+			fields: fields{
+				repo: NewMockRepo(&Config{
+					CourseByUUID: map[uuid.UUID]models.Course{
+						fixedUuid: {Uuid: fixedUuid},
+					},
+				}),
+			},
+			args: args{
+				ctx:        context.TODO(),
+				courseUUID: fixedUuid,
+			},
+			want: &models.Course{Uuid: fixedUuid},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewCourseManager(tt.fields.repo, tt.fields.logger)
+			if err != nil {
+				t.Fatal("unexpected error", err)
+			}
+			got, err := c.Get(tt.args.ctx, tt.args.courseUUID)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error, but none raised")
+				}
+				if tt.expectedErrMessage != err.Error() {
+					t.Errorf("Get() error = %v, wantErr %v", err.Error(), tt.expectedErrMessage)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error Get() error = %v", err)
+				}
+				if !reflect.DeepEqual(*got, *tt.want) {
+					t.Errorf("Get() got = %v, want %v", got, tt.want)
+				}
+			}
 		})
 	}
 }
