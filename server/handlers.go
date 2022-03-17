@@ -38,6 +38,7 @@ func (a *ApiV1) Attach(group *echo.Group) {
 	group.GET("/getCourse/:courseUUID", a.GetCourse)
 	group.PUT("/registerStudent/:courseUUID", a.RegisterStudent)
 	group.PUT("/unregisterStudent/:courseUUID", a.UnregisterStudent)
+	group.POST("/createCourse", a.Create)
 }
 
 func (a *ApiV1) ListCourses(ec echo.Context) error {
@@ -90,15 +91,16 @@ func (a *ApiV1) UnregisterStudent(ec echo.Context) error {
 	return ec.JSON(http.StatusOK, successMessage)
 }
 
-//func (a *ApiV1) Create(ec echo.Context) error {
-//	request := new(CreateCourse)
-//	if err := ec.Bind(request); err != nil {
-//		a.logger.Printf("unable to bind request params: %v", err)
-//		return err
-//	}
-//	courses, err := a.courseManagerSvc.Create(ec.Request().Context(), request.Course)
-//	if err != nil {
-//		return err
-//	}
-//	return ec.JSON(http.StatusOK, courses)
-//}
+func (a *ApiV1) Create(ec echo.Context) error {
+	request := new(CreateCourse)
+	if err := ec.Bind(request); err != nil {
+		a.logger.Printf("unable to bind request params: %v", err)
+		return err
+	}
+	course, err := a.courseManagerSvc.Create(ec.Request().Context(), request.Course)
+	if err != nil {
+		a.logger.Println(err)
+		return ec.JSON(http.StatusBadRequest, map[string]string{"message": "unable to create the course"})
+	}
+	return ec.JSON(http.StatusCreated, course)
+}

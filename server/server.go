@@ -27,7 +27,7 @@ func StartServer(config *Config) {
 	}
 	courseManager, err := services.NewCourseManager(repo, log.Default())
 	if err != nil {
-		log.Fatalf("unable to start course manager service")
+		log.Fatalf("unable to start course manager service %v", err)
 	}
 	apiV1, err := NewApiV1(&courseManager, config.Logger)
 	if err != nil {

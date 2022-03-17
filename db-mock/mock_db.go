@@ -79,7 +79,7 @@ func (m *MockRepo) ById(_ context.Context, courseUuid uuid.UUID) (*models.Course
 	}
 	course, found := m.courseByUUID[courseUuid]
 	if !found {
-		return nil, fmt.Errorf("course not found")
+		return nil, fmt.Errorf("course not found (UUID: %v)", courseUuid)
 	}
 	return &course, nil
 }

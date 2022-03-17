@@ -5,16 +5,9 @@ import (
 	"github.com/tomasdembelli/course-manager/models"
 )
 
-// Course defines a course object used in HTTP server.
-type Course struct {
-	Name     string
-	Tutor    models.Tutor
-	Students []models.Student
-}
-
 // CreateCourse should be used at the HTTP endpoint for creating a course.
 type CreateCourse struct {
-	Course Course `form:"course"`
+	Course models.CourseMeta `form:"course"`
 }
 
 // CourseByUUID should be used at the HTTP endpoint for querying an individual course by its UUID.

@@ -50,14 +50,14 @@ func TestCourseConstraintErr_Is(t *testing.T) {
 	}{
 		{
 			name:   "expected error",
-			fields: fields{message: fmt.Sprintf(validationErrFmt, string(tutorMaxCourse))},
-			args:   args{target: NewCourseConstraintErr(tutorMaxCourse)},
+			fields: fields{message: fmt.Sprintf(validationErrFmt, string(tutorMaxCourseMsg))},
+			args:   args{target: NewCourseConstraintErr(tutorMaxCourseMsg)},
 			want:   true,
 		},
 		{
 			name:   "not expected error",
 			fields: fields{message: fmt.Sprintf(validationErrFmt, "random string")},
-			args:   args{target: NewCourseConstraintErr(tutorMaxCourse)},
+			args:   args{target: NewCourseConstraintErr(tutorMaxCourseMsg)},
 			want:   false,
 		},
 	}
@@ -83,19 +83,19 @@ func TestNewCourseConstraintErr(t *testing.T) {
 		want *CourseConstraintErr
 	}{
 		{
-			name: "valid error tutor max course",
-			args: args{check: tutorMaxCourse},
-			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, tutorMaxCourse)},
+			name: "valid error tutor max courseMeta",
+			args: args{check: tutorMaxCourseMsg},
+			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, tutorMaxCourseMsg)},
 		},
 		{
-			name: "valid error student max course",
-			args: args{check: studentMaxCourse},
-			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, studentMaxCourse)},
+			name: "valid error studentUUID max courseMeta",
+			args: args{check: studentMaxCourseMsg},
+			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, studentMaxCourseMsg)},
 		},
 		{
-			name: "valid error course max student",
-			args: args{check: courseMaxStudent},
-			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, courseMaxStudent)},
+			name: "valid error courseMeta max studentUUID",
+			args: args{check: courseMaxStudentMsg},
+			want: &CourseConstraintErr{message: fmt.Sprintf(validationErrFmt, courseMaxStudentMsg)},
 		},
 	}
 	for _, tt := range tests {

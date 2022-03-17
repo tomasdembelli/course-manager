@@ -210,10 +210,6 @@ components:
           example: Microservices with Go
         tutor:
           $ref: '#/components/schemas/Tutor'
-        students:
-          type: array
-          items:
-            $ref: '#/components/schemas/Student'
     Course:
       type: object
       properties:

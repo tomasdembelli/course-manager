@@ -20,6 +20,12 @@ type Repo interface {
 	Update(ctx context.Context, course models.Course) error
 }
 
+const (
+	tutorMaxCourse   = 2
+	studentMaxCourse = 4
+	courseMaxStudent = 20
+)
+
 // CourseManager is the service for managing the courses.
 type CourseManager struct {
 	repo   Repo
@@ -45,50 +51,31 @@ func NewCourseManager(repo Repo, logger *log.Logger) (CourseManager, error) {
 	}, nil
 }
 
-// Create creates a new course after validating the following checks:
-//	- A tutor can facilitate maximum 2 courses.
-//	- A student can register to maximum 4 courses.
-//	- Maximum 20 students can register a course.
-func (c *CourseManager) Create(ctx context.Context, course models.Course) (*models.Course, error) {
-	if course.Tutor == nil {
+// Create creates a new course. It enforces that a tutor can facilitate maximum 2 courses.
+func (c *CourseManager) Create(ctx context.Context, courseMeta models.CourseMeta) (*models.Course, error) {
+	if courseMeta.Tutor == nil {
 		return nil, NewNilErr("tutor")
 	}
-	coursesByTutor, err := c.repo.ByTutor(ctx, course.Tutor.Uuid)
+	coursesByTutor, err := c.repo.ByTutor(ctx, courseMeta.Tutor.Uuid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve courses: %w", err)
 	}
-	if len(coursesByTutor) >= 2 {
-		return nil, NewCourseConstraintErr(tutorMaxCourse)
+	if len(coursesByTutor) >= tutorMaxCourse {
+		return nil, NewCourseConstraintErr(tutorMaxCourseMsg)
 	}
-	if len(course.Students) > 0 {
-		if len(course.Students) > 20 {
-			return nil, NewCourseConstraintErr(courseMaxStudent)
-		}
-		var notEligibleStudents []uuid.UUID
-		for _, student := range course.Students {
-			coursesByStudent, err := c.repo.ByStudent(ctx, student.Uuid)
-			if err != nil {
-				return nil, fmt.Errorf("unable to retrieve courses: %w", err)
-			}
-			if len(coursesByStudent) >= 4 {
-				notEligibleStudents = append(notEligibleStudents, student.Uuid)
-				delete(course.Students, student.Uuid)
-			}
-		}
-		if len(notEligibleStudents) > 0 {
-			c.logger.Printf("%v, ineligible student uuids: %v", studentMaxCourse, notEligibleStudents)
-		}
-	}
-	if course.Uuid == uuid.Nil {
-		course.Uuid = uuid.New()
+	if courseMeta.Uuid == uuid.Nil {
+		courseMeta.Uuid = uuid.New()
 	}
 
-	err = c.repo.Create(ctx, course)
+	err = c.repo.Create(ctx, models.Course{
+		CourseMeta: courseMeta,
+		Students:   make(map[uuid.UUID]models.Student),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to create the course: %w", err)
 	}
 
-	courseCreated, err := c.repo.ById(ctx, course.Uuid)
+	courseCreated, err := c.repo.ById(ctx, courseMeta.Uuid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve the course: %w", err)
 	}
@@ -99,10 +86,23 @@ func (c *CourseManager) Create(ctx context.Context, course models.Course) (*mode
 // RegisterStudent registers the given models.Student to the given course.
 // This is an idempotent operation.
 // It will return an error if the given course is not found or unable to update it.
+// It enforces:
+//	- A studentUUID can register to maximum 4 courses.
+//	- Maximum 20 students can register a course.
 func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID, student models.Student) error {
 	course, err := c.repo.ById(ctx, courseUUID)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve the course: %w", err)
+	}
+	if len(course.Students) >= courseMaxStudent {
+		return NewCourseConstraintErr(courseMaxStudentMsg)
+	}
+	coursesByStudent, err := c.repo.ByStudent(ctx, student.Uuid)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve courses: %w", err)
+	}
+	if len(coursesByStudent) >= studentMaxCourse {
+		return fmt.Errorf("a studentUUID can subscribe to maximum %d courses", studentMaxCourse)
 	}
 	course.Students[student.Uuid] = student
 	err = c.repo.Update(ctx, *course)
@@ -115,7 +115,7 @@ func (c CourseManager) RegisterStudent(ctx context.Context, courseUUID uuid.UUID
 // UnregisterStudent removes the given models.Student from the given course.
 // This is an idempotent operation.
 // It will return an error if the given course is not found or unable to update it.
-// If the student has not been registered to the course previously, no error will be returned (no-op).
+// If the studentUUID has not been registered to the course previously, no error will be returned (no-op).
 func (c CourseManager) UnregisterStudent(ctx context.Context, courseUUID, studentUUID uuid.UUID) error {
 	course, err := c.repo.ById(ctx, courseUUID)
 	if err != nil {
@@ -155,7 +155,6 @@ func (c CourseManager) Get(ctx context.Context, courseUUID uuid.UUID) (*models.C
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve course by UUID: %w", err)
 	}
-	fmt.Println(course)
 	if course.Uuid == uuid.Nil {
 		return nil, NewCourseNotFoundErr(courseUUID)
 	}

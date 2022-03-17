@@ -12,7 +12,7 @@ const (
 	validationErrFmt  = "validation failed: %v"
 )
 
-// NotFoundError should be returned when a service can't find a course.
+// NotFoundError should be returned when a service can't find a courseMeta.
 type NotFoundError struct {
 	message string
 }
@@ -53,9 +53,9 @@ func (e *NilErr) Is(target error) bool { return target.Error() == e.message }
 type courseConstraint string
 
 const (
-	tutorMaxCourse   courseConstraint = "a tutor can facilitate maximum 2 courses"
-	studentMaxCourse courseConstraint = "a student can register to maximum 4 courses"
-	courseMaxStudent courseConstraint = "maximum 20 students can register a course"
+	tutorMaxCourseMsg   courseConstraint = "a tutor can facilitate maximum 2 courses"
+	studentMaxCourseMsg courseConstraint = "a studentUUID can register to maximum 4 courses"
+	courseMaxStudentMsg courseConstraint = "maximum 20 students can register a courseMeta"
 )
 
 type CourseConstraintErr struct {
