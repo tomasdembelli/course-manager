@@ -1,12 +1,22 @@
-FROM python:3.10.0-alpine
+# syntax=docker/dockerfile:1
 
-WORKDIR /usr/src/app
+# Alpine is chosen for its small footprint
+# compared to Ubuntu
+FROM golang:1.18-alpine
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apk --no-cache add git
 
-COPY . /usr/src/app
+WORKDIR /go/src/github.com/tomasdembelli/course-manager
 
-EXPOSE 5000
+# Download necessary Go modules
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
 
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
+COPY . .
+
+RUN go install -v ./cmd/...
+
+EXPOSE 8000
+
+CMD ["/go/bin/course-manager"]

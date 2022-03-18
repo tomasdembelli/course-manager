@@ -3,7 +3,7 @@
 default: help
 
 build.web: ## Build the web container
-	@docker-compose build web
+	@docker-compose build course-manager
 
 help: ## Show this help
 	@echo
@@ -11,7 +11,7 @@ help: ## Show this help
 	@echo
 
 start: ## Run the application locally in the background
-	@docker compose up --build --detach web
+	@docker compose up --build --detach course-manager
 
 stop: ## Stop the application
 	@docker compose stop
@@ -20,11 +20,10 @@ clean: ## Remove containers and delete all data from the local volumes
 	@docker compose down --remove-orphans --volumes
 
 shell: ## Shell into a development container
-	@docker compose build web
-	@docker compose run --rm web sh
+	@docker compose exec course-manager sh
 
 logs: ## Show the application logs
-	@docker compose logs --follow --tail=1000 web
+	@docker compose logs --follow --tail=1000 course-manager
 
 run: start logs ## Run the application locally
 

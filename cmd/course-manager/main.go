@@ -23,7 +23,6 @@ func main() {
 	}
 	server.StartServer(&server.Config{
 		Port:             8000,
-		Logger:           log.Default(),
 		CourseManagerSvc: &courseManager,
 	})
 }

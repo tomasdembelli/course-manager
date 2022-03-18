@@ -11,17 +11,18 @@ import (
 
 type Config struct {
 	Port             int
-	Logger           *log.Logger
 	CourseManagerSvc *services.CourseManager
 }
 
 func StartServer(config *Config) {
-	apiV1, err := NewApiV1(config.CourseManagerSvc, config.Logger)
+	apiV1, err := NewApiV1(config.CourseManagerSvc)
 	if err != nil {
 		log.Fatal("unable to start apiV1", err)
 	}
 
 	e := echo.New()
+	e.Use(echoMiddleware.Logger())
+	e.Use(echoMiddleware.Recover())
 	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     echoMiddleware.DefaultCORSConfig.AllowMethods,
