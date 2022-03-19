@@ -6,9 +6,15 @@ import (
 )
 
 func TestCourseManager_HappyPath(t *testing.T) {
+
 	rp := RequestParams{
 		BaseUrl: "http://localhost:8000/v1",
 	}
+	err := rp.Do()
+	if err != nil {
+		t.Skip("course manager service is not running, skipping the smoke tests")
+	}
+
 	rp.Payload = map[string]interface{}{
 		"course": map[string]interface{}{
 			"name": "Microservices with Go",
@@ -24,7 +30,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 
 	rp.Path = "/createCourse"
 	rp.Method = http.MethodPost
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusCreated {
 		t.Errorf("expected %v, got %v", http.StatusCreated, rp.StatusCode)
 		t.Log(rp.ResponseBody)
@@ -34,7 +43,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 	rp.Path = "/getCourse/" + courseUUID
 	rp.Method = http.MethodGet
 	rp.Payload = map[string]interface{}{}
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusOK && rp.ResponseBody.(map[string]interface{})["uuid"].(string) != courseUUID {
 		t.Errorf("expected %v, got %v", http.StatusOK, rp.StatusCode)
 		t.Log(rp.ResponseBody)
@@ -42,7 +54,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 
 	rp.Path = "/listCourses"
 	rp.Method = http.MethodGet
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusOK {
 		t.Errorf("expected %v, got %v", http.StatusOK, rp.StatusCode)
 		t.Log(rp.ResponseBody)
@@ -67,7 +82,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 			"faculty":  "Computer Science",
 		},
 	}
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected %v, got %v", http.StatusNoContent, rp.StatusCode)
 		t.Log(rp.ResponseBody)
@@ -78,7 +96,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 	rp.Payload = map[string]interface{}{
 		"studentUUID": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
 	}
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected %v, got %v", http.StatusNoContent, rp.StatusCode)
 		t.Log(rp.ResponseBody)
@@ -87,7 +108,10 @@ func TestCourseManager_HappyPath(t *testing.T) {
 	rp.Path = "/deleteCourse/" + courseUUID
 	rp.Method = http.MethodDelete
 	rp.Payload = map[string]interface{}{}
-	rp.Do()
+	err = rp.Do()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	if rp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected %v, got %v", http.StatusNoContent, rp.StatusCode)
 		t.Log(rp.ResponseBody)

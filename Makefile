@@ -42,5 +42,5 @@ lint: ## Lint the application code
 	@docker compose run --rm lint
 	@echo "Lint completed with no errors."
 
-test: running ## Run all tests
+test: ## Run unit tests
 	@go test -race -cover ./...

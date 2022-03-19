@@ -3,7 +3,7 @@ package smoke_tests
 import (
 	"bytes"
 	"encoding/json"
-	"go.uber.org/zap"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -20,16 +20,14 @@ type RequestParams struct {
 	Params       map[string]string
 }
 
-func (r *RequestParams) Do() {
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+func (r *RequestParams) Do() error {
 	data, err := json.Marshal(&r.Payload)
 	if err != nil {
-		logger.Fatal("failed to marshall payload %v", zap.Any("payload", r.Payload))
+		return fmt.Errorf("failed to marshall payload %v", r.Payload)
 	}
 	request, err := http.NewRequest(strings.ToUpper(r.Method), r.BaseUrl+r.Path, bytes.NewBuffer(data))
 	if err != nil {
-		logger.Fatal("failed to create a %v request to %v", zap.String("method", request.Method), zap.String("uri", request.RequestURI))
+		return fmt.Errorf("failed to create a %v request to %v", request.Method, request.RequestURI)
 	}
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	request.Header.Set("Accept", "application/json; charset=UTF-8")
@@ -48,18 +46,19 @@ func (r *RequestParams) Do() {
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
-		logger.Fatal("failed to DO a %v request to %v", zap.String("method", request.Method), zap.String("uri", request.RequestURI))
+		return fmt.Errorf("failed to DO a %v request to %v", request.Method, request.RequestURI)
 	}
 	r.StatusCode = response.StatusCode
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		logger.Fatal("error reading response %v", zap.Error(err))
+		return fmt.Errorf("error reading response %v", err)
 	}
 	if string(body) != "" {
 		err = json.Unmarshal(body, &r.ResponseBody)
 		if err != nil {
-			logger.Warn("failed to unmarshall response responseBody", zap.String("path", r.Path), zap.Error(err))
+			return fmt.Errorf("failed to unmarshall response responseBody %v, %v", r.Path, err)
 		}
 	}
+	return nil
 }
