@@ -1,4 +1,4 @@
-.PHONY: help build.web start stop clean shell docs lint
+.PHONY: help build.web start stop clean shell docs lint test running
 
 default: help
 
@@ -9,6 +9,12 @@ help: ## Show this help
 	@echo
 	@fgrep -h " ## " $(MAKEFILE_LIST) | fgrep -v fgrep | sed -Ee 's/([a-z.]*):[^#]*##(.*)/\1##\2/' | column -t -s "##"
 	@echo
+
+running:
+	@if [ -z `docker compose ps -q course-manager` ]; then \
+		echo "Course Manager service must be running, try running \"make start\" first"; \
+		exit 1; \
+	fi
 
 start: ## Run the application locally in the background
 	@docker compose up --build --detach course-manager
@@ -35,3 +41,6 @@ docs: ## Run the documentation service
 lint: ## Lint the application code
 	@docker compose run --rm lint
 	@echo "Lint completed with no errors."
+
+test: running ## Run all tests
+	@go test -race -cover ./...

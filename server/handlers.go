@@ -32,6 +32,7 @@ func NewApiV1(courseManager *services.CourseManager) (*ApiV1, error) {
 func (a *ApiV1) Attach(group *echo.Group) {
 	group.GET("/listCourses", a.ListCourses)
 	group.GET("/getCourse/:courseUUID", a.GetCourse)
+	group.DELETE("/deleteCourse/:courseUUID", a.DeleteCourse)
 	group.PUT("/registerStudent/:courseUUID", a.RegisterStudent)
 	group.PUT("/unregisterStudent/:courseUUID", a.UnregisterStudent)
 	group.POST("/createCourse", a.Create)
@@ -63,6 +64,20 @@ func (a *ApiV1) GetCourse(ec echo.Context) error {
 	return ec.JSON(http.StatusOK, course)
 }
 
+func (a *ApiV1) DeleteCourse(ec echo.Context) error {
+	request := new(CourseByUUID)
+	if err := ec.Bind(request); err != nil {
+		ec.Logger().Error(err)
+		return err
+	}
+	err := a.courseManagerSvc.Delete(ec.Request().Context(), request.UUID)
+	if err != nil {
+		ec.Logger().Error(err)
+		return err
+	}
+	return ec.NoContent(http.StatusNoContent)
+}
+
 func (a *ApiV1) RegisterStudent(ec echo.Context) error {
 	request := new(RegisterStudent)
 	if err := ec.Bind(request); err != nil {
@@ -74,7 +89,7 @@ func (a *ApiV1) RegisterStudent(ec echo.Context) error {
 		ec.Logger().Error(err)
 		return ec.JSON(http.StatusBadRequest, map[string]string{"message": "unable to register student"})
 	}
-	return ec.JSON(http.StatusOK, successMessage)
+	return ec.NoContent(http.StatusNoContent)
 }
 
 func (a *ApiV1) UnregisterStudent(ec echo.Context) error {
@@ -88,7 +103,7 @@ func (a *ApiV1) UnregisterStudent(ec echo.Context) error {
 		ec.Logger().Error(err)
 		return ec.JSON(http.StatusBadRequest, map[string]string{"message": "unable to unregister student"})
 	}
-	return ec.JSON(http.StatusOK, successMessage)
+	return ec.NoContent(http.StatusNoContent)
 }
 
 func (a *ApiV1) Create(ec echo.Context) error {
@@ -100,7 +115,9 @@ func (a *ApiV1) Create(ec echo.Context) error {
 	course, err := a.courseManagerSvc.Create(ec.Request().Context(), request.Course)
 	if err != nil {
 		ec.Logger().Error(err)
-		return ec.JSON(http.StatusBadRequest, map[string]string{"message": "unable to create the course"})
+		return ec.JSON(http.StatusBadRequest, map[string]string{"message": "unable to create the course",
+			"error": err.Error(),
+		})
 	}
 	return ec.JSON(http.StatusCreated, course)
 }

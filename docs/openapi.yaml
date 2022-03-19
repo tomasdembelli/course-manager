@@ -63,6 +63,24 @@ paths:
           $ref: '#/components/responses/notFound'
         500:
           description: Unexpected error.
+  /deleteCourse/{courseUUID}:
+    delete:
+      tags:
+        - course
+      summary: Delete a course
+      parameters:
+        - $ref: '#/components/parameters/uuid'
+      responses:
+        204:
+          description: Deleted
+        400:
+          description: Bad request.
+        401:
+          $ref: '#/components/responses/unauthorized'
+        404:
+          $ref: '#/components/responses/notFound'
+        500:
+          description: Unexpected error.
   /listCourses:
     get:
       tags:
