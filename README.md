@@ -2,9 +2,13 @@
 A simple web service facilitating student registry to given courses. 
 
 
-Note that this is an example backend service for educational purposes.
+Note that this is an example backend service for educational purposes. It has been created for the [Building Backend Service in Go](https://github.com/tomasdembelli/building-backend-service-in-go) project.
 
-Make commands
+The API endpoints can be investigated by running `make docs` on [swagger-UI](http://localhost:8080/).
+
+![Endpoints](./docs/course-manager-swagger.png)
+
+Available Make commands can be seen by running `make help`.
 ```shell
 build.web   Build the web container
 help        Show this help
