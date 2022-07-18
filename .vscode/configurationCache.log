@@ -1,0 +1,1 @@
+{"buildTargets":["build.web","clean","default","docs","help","lint","logs","run","running","shell","start","stop","test"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}

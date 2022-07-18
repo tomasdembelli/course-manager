@@ -2,7 +2,7 @@ package main
 
 import (
 	db_mock "github.com/tomasdembelli/course-manager/db-mock"
-	"github.com/tomasdembelli/course-manager/server"
+	server "github.com/tomasdembelli/course-manager/echo-server"
 	"github.com/tomasdembelli/course-manager/services"
 	"log"
 	"os"
